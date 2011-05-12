@@ -6,19 +6,17 @@ import Data.Digest.CRC32
 import Data.Word
 
 main :: IO ()
-main = B.writeFile "test.esb" $ B.pack $ esb $ bootloaderHeader $ nop ++ jumpToBoot
+main = B.writeFile "test.esb" $ B.pack $ esb $ bootloaderHeader test
 
+test :: [Word8]
+test = jumpToBoot -- b 0
+
+-- | Format ESB image.
 esb :: [Word8] -> [Word8]
 esb image = [0xE5, 0x5B, 0xBE, 0xE5, 5, 0, 0, 0] ++ le (fromIntegral $ crc32 block) ++ block
   where
   block :: [Word8]
   block = [1, 0, 0, 0, 3, 0, 0, 0, 128, 0, 0, 0] ++ le (length image) ++ image
-
-le :: Int -> [Word8]
-le a = [ fromIntegral $ shiftR a n .&. 0xFF | n <- [0, 8 .. 24] ]
-
-be :: Int -> [Word8]
-be a = [ fromIntegral $ shiftR a n .&. 0xFF | n <- [24, 16 .. 0] ]
 
 -- | Adds bootloader header to a program.  Program must start at address 0x8001c.
 bootloaderHeader :: [Word8] -> [Word8]
@@ -46,6 +44,11 @@ bootloaderHeader program' = be (0 - sum block) ++ block
   sum [] = 0
   sum _ = error "words not on 32-bit boundry"
 
+le :: Int -> [Word8]
+le a = [ fromIntegral $ shiftR a n .&. 0xFF | n <- [0, 8 .. 24] ]
+
+be :: Int -> [Word8]
+be a = [ fromIntegral $ shiftR a n .&. 0xFF | n <- [24, 16 .. 0] ]
 
 
 
