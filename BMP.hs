@@ -9,24 +9,8 @@ main :: IO ()
 main = B.writeFile "test.esb" $ B.pack $ esb $ bootloaderHeader test
 
 test :: [Word8]
-test = concat
-  [ set R1 0xfffc0000  -- Base address of CAN A.
-
-  , set R2 0x1
-  , stb R2 0x0 R1      -- Set HALT.
-
-  , set R2 0x032e0005
-  , stw R2 0x4 R1      -- Set CTRL for 250K.
-
-  , set R1 0xfffc0080  -- Base address of CAN A, buffer 0.
-  , set R2 0x08280000
-  , stw R2 0x0 R1      -- Set buffer 0 for transmission.
-
-  , set R1 0xffc0000
-  , set R2 0x0
-  , stb R2 0x0 R1      -- Clear HALT.
-
-  , set R1 0xfffc0080  -- Base address of CAN A, buffer 0.
+test = concat $
+  [ set R1 0xfffc0080  -- Base address of CAN A, buffer 0.
   , set R2 0x8
   , stb R2 0x0 R1      -- Write Code = 8.
   , set R2 0x1
@@ -39,7 +23,6 @@ test = concat
   , stb R2 0x1 R1
   , set R2 0xc
   , stb R2 0x0 R1
-
   , jumpToBoot
   ]
 
