@@ -4,9 +4,12 @@ import Data.Bits
 import qualified Data.ByteString as B
 import Data.Digest.CRC32
 import Data.Word
+import Text.Printf
 
 main :: IO ()
-main = B.writeFile "test.esb" $ B.pack $ esb $ bootloaderHeader test
+main = do
+  B.writeFile "test.esb" $ B.pack $ esb $ bootloaderHeader test
+  writeFile "test.sr" $ srec $ bootloaderHeader test
 
 test :: [Word8]
 test = concat $
@@ -56,6 +59,45 @@ bootloaderHeader program' = be (0 - sum block) ++ block
   sum (a : b : c : d : rest) = foldl1 (.|.) [ shiftL (fromIntegral a) n | (a, n) <- zip [a, b, c, d] [24, 16, 8, 0] ] + sum rest
   sum [] = 0
   sum _ = error "words not on 32-bit boundry"
+
+-- | S-Record file generation.  Disassemble with: powerpc-eabi-objdump -b srec -m powerpc -EB -D test.sr
+srec :: [Word8] -> String
+srec image = unlines $ records ++ [record "S5" $ be $ length records, record "S7" [0x00, 0x08, 0x00, 0x0c]]
+  where
+  chunks [] = []
+  chunks a = take 0x40 a : chunks (drop 0x40 a)
+
+  records :: [String]
+  records = [ record "S3" $ be addr ++ chunk | (chunk, addr) <- zip (chunks image) [0x80000, 0x80040 ..] ]
+
+  record :: String -> [Word8] -> String
+  record header payload = header ++ concatMap (printf "%02x") payload2
+    where
+    payload1 = [fromIntegral $ length payload + 1] ++ payload
+    payload2 = payload1 ++ [complement $ sum payload1]
+
+{-
+elf :: [Word8] -> [Word8]
+elf =
+  where
+  header =
+    [ 0x7f, 0x45, 0x4c, 0x46, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 -- e_ident
+    , 0x00, 0x02              -- e_type
+    , 0, 20                   -- e_machine
+    , 0, 0, 0, 1              -- e_version
+    , 0x00, 0x08, 0x00, 0x0c  -- e_entry
+    , 0, 0, 0, 0              -- e_phoff
+    , 0, 0, 0, 0              -- e_shoff
+    , 0, 0, 0, 0              -- e_flags
+    , 0, 52                   -- e_ehsize
+    , 0, 0                    -- e_phentsize
+    , 0, 0                    -- e_phnum
+    , 0, 0                    -- e_shentsize
+    , 0, 0                    -- e_shnum
+    , 0, 0                    -- e_shstrndx
+    ]
+-}
+
 
 le :: Int -> [Word8]
 le a = [ fromIntegral $ shiftR a n .&. 0xFF | n <- [0, 8 .. 24] ]
