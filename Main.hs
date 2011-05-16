@@ -1,19 +1,19 @@
 module Main (main) where
 
 import qualified Data.ByteString as B
-import Data.Word
 
 import Eaton
+import MTL ()
 import PPC
 import Utils
 
 main :: IO ()
 main = do
-  B.writeFile "test.esb" $ B.pack $ esb $ bootloader test
-  writeFile "test.sr" $ srec 0x00080000 0x0008000c $ bootloader test
+  B.writeFile "test.esb" $ B.pack $ esb $ bootloader $ assemble test
+  writeFile "test.sr" $ srec 0x00080000 0x0008000c $ bootloader $ assemble test
 
-test :: [Word8]
-test = concat $
+test :: PPC
+test = foldl1 (+++)
   [ set R1 0xfffc0080  -- Base address of CAN A, buffer 0.
   , set R2 0x8
   , stb R2 0x0 R1      -- Write Code = 8.

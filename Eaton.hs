@@ -31,7 +31,7 @@ bootloader program' = be (0 - sum block) ++ block
 
   block :: [Word8]
   block = be (length program + 0x8001c)
-       ++ ba 0x8001c
+       ++ assemble (ba 0x8001c)
        ++ [0xea, 0x55, 0xaa, 0x01]
        ++ [0x90, 0x12, 0x00, 0x00]
        ++ [0, 0, 0, 0]
@@ -44,6 +44,6 @@ bootloader program' = be (0 - sum block) ++ block
   sum _ = error "words not on 32-bit boundry"
 
 -- | Jump back to the bootloader from the application.
-jumpToBoot :: [Word8]
+jumpToBoot :: PPC
 jumpToBoot = ba 0x8
 
