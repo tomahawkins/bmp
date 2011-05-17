@@ -80,8 +80,19 @@ compileE regs a = case a of
     (asmA, rA) = compileE regs a
     (asmB, rB) = compileE (delete rA regs) b
 
-  And _ _     -> undefined
-  Or  _ _     -> undefined
-  Not _       -> undefined
+  And a b -> (asmA +++ asmB +++ and_ rA rA rB, rA)
+    where
+    (asmA, rA) = compileE regs a
+    (asmB, rB) = compileE (delete rA regs) b
+
+  Or a b -> (asmA +++ asmB +++ or_ rA rA rB, rA)
+    where
+    (asmA, rA) = compileE regs a
+    (asmB, rB) = compileE (delete rA regs) b
+
+  Not a -> (asmA +++ not_ rA rA, rA)
+    where
+    (asmA, rA) = compileE regs a
+
   Shift _ _   -> undefined
 
