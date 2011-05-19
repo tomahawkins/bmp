@@ -13,19 +13,33 @@ main = do
   B.writeFile "test.esb" $ B.pack $ esb $            bootloader $ assemble $ compile test
   writeFile "test.sr" $ srec 0x00080000 0x0008000c $ bootloader $ assemble $ compile test
 
+-- Pointer to CAN A.
+canA :: E
+canA = 0xfffc0000
+
+-- Pointer to CAN A, Message Buffer 0.
+mb0 :: E
+mb0 = canA + 0x80
+
+inactive :: E
+inactive = 0x08280000
+
+transmit :: E
+transmit = 0x0c280000
+
 -- A little MTL program that attempts to send a CAN message.
 test :: S
 test = Seq
-  [ 0xfffc0000 := Deref 0xfffc0000 .|. 0x10000000   -- Set HALT.
-  , 0xfffc0004 := 0x032e0005                        -- Set CTRL for 250K.
-  , Seq [ Const buffer := 0x08280000 | buffer <- [0xfffc0080, 0xfffc0090 .. 0xfffc0470] ]  -- Set all MBs to transmit.
-  , 0xfffc0000 := Deref 0xfffc0000 .&. 0xefffffff .|.0x00020000  -- Clear HALT and set SRX_DIS.
+  [ canA + 0x0 := 0x5080000f
+  , canA + 0x4 := 0x032e0005    -- Set CTRL for 250K.
+  , mb0 := inactive
+  , canA + 0x0 := 0x4080000f
 
-  , 0xfffc0080 := 0x08280000  -- Deref 0xfffc0080 .&. 0xf0ffffff .|. 0x08000000  -- Write code 8 to CS buffer register.
-  , 0xfffc0084 := 0x00000123  -- Write dummy id.
-  , 0xfffc0088 := 0x01234587  -- Write dummy payload.
-  , 0xfffc008c := 0x89abcdef
-  , 0xfffc0080 := 0x0c280000  -- Deref 0xfffc0080 .&. 0xf0f0ffff .|. 0x0c080000  -- Write code c and length 8.  XXX What should be SRR and RTR?
+  , mb0 := inactive
+  , mb0 + 0x4 := 0x00000123  -- Write dummy id.
+  , mb0 + 0x8 := 0x01234587  -- Write dummy payload.
+  , mb0 + 0xc := 0x89abcdef
+  , mb0 := transmit
   , Asm $ assemble $ b 0
   , Asm $ assemble jumpToBoot
   ]

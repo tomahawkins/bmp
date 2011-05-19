@@ -21,7 +21,6 @@ data E
   | And E E        -- ^ Bitwise AND.
   | Or  E E        -- ^ Bitwise OR.
   | Not E          -- ^ Bitwise NOT.
-  | Shift E Int    -- ^ Shift left by constant amount.
   deriving (Show, Eq)
 
 instance Num E where
@@ -38,9 +37,9 @@ instance Bits E where
   (.|.) = Or
   complement = Not
   xor a b = (a .&. complement b) .|. (complement a .&. b)
-  shift = Shift
-  rotate = undefined
-  bitSize _ = 32
+  shift    = undefined
+  rotate   = undefined
+  bitSize  = undefined
   isSigned = undefined
 
 -- | Statements.
@@ -93,6 +92,4 @@ compileE regs a = case a of
   Not a -> (asmA +++ not_ rA rA, rA)
     where
     (asmA, rA) = compileE regs a
-
-  Shift _ _   -> undefined
 
