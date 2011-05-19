@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Data.Bits
+import Data.Bits ()
 import qualified Data.ByteString as B
 
 import Eaton
